@@ -22,12 +22,12 @@ import uuid
 import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
-from arguments import ModelParams, PipelineParams, OptimizationParams
+from arguments import ModelParams, PipelineParams, OptimizationParams, get_combined_args
 from train import training_report
 import math
 from utils.gui_utils import orbit_camera, OrbitCamera
 import numpy as np
-import dearpygui.dearpygui as dpg
+# import dearpygui.dearpygui as dpg
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -779,6 +779,7 @@ if __name__ == "__main__":
     pp = PipelineParams(parser)
 
     parser.add_argument('--gui', action='store_true', help="start a GUI")
+    parser.add_argument('--config_file', default = "config/torus.json", type = str)
     parser.add_argument('--W', type=int, default=800, help="GUI width")
     parser.add_argument('--H', type=int, default=800, help="GUI height")
     parser.add_argument('--elevation', type=float, default=0, help="default GUI camera elevation")

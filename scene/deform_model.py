@@ -27,7 +27,22 @@ class DeformModel:
         self.spatial_lr_scale = 5
         self.max_time = max_time
         self.vel_start_time = vel_start_time
+    def get_vel_field(self, xyz, d_xyz_deform, time_emb, deform_code, dt = 1/30, max_time=0.75):
 
+        sign = 1 if torch.rand(1)[0] > 0.5 else -1
+        deform_time = (time_emb - dt * sign).clamp(self.vel_start_time, max_time)
+        deform_seg = self.code_field.seg(deform_code)
+        # (self, deform_code, xt):
+        # print()
+        xyz_t = xyz.detach() + d_xyz_deform.detach()
+        # print(xyz_t.shape, time_emb.shape)
+        
+        xyz_vel = self.vel.vel_net.get_vel(deform_seg, torch.cat( [xyz_t, time_emb], dim = -1))
+
+        # xyz_vel = (self.vel.integrate_pos(deform_seg, xyz.detach() + d_xyz_deform.detach(), deform_time, time_emb, dt, rot=False))
+        # d_xyz_vel = xyz_vel - d_xyz_deform.detach() - xyz.detach()
+        # d_xyz = d_xyz_vel + d_xyz_deform
+        return xyz_vel
     def step_no_rot(self, xyz, time_emb, deform_code, dt=1/60, max_time=0.75):
         max_time = self.max_time
         min_time = max(self.vel_start_time, dt)
@@ -54,6 +69,7 @@ class DeformModel:
             d_xyz = d_xyz_vel + d_xyz_deform
         else:
             gate = self.deform.get_gate(deform_code)
+
             d_xyz, d_rotation, d_scale = self.deform(xyz.detach(), time_emb, deform_code)
         if self.v_gate:
             d_xyz = d_xyz * gate
@@ -98,7 +114,7 @@ class DeformModel:
 
     def step(self, xyz, time_emb, deform_code, dt=1/60, max_time=0.75):
         max_time = self.max_time
-        if time_emb[0, 0] > max_time:
+        if time_emb.shape[0] != 0 and time_emb[0, 0] > max_time:
             gate = self.deform.get_gate(deform_code)
             deform_time = torch.ones_like(time_emb) * max_time
             d_xyz_deform, d_rotation, d_scale = self.deform(xyz.detach(), deform_time, deform_code)

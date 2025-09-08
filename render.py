@@ -23,7 +23,11 @@ from arguments import ModelParams, PipelineParams, get_combined_args
 import imageio
 import numpy as np
 import einops
-
+import matplotlib.pyplot as plt
+from matplotlib import cm
+import os
+import imageio.v2 as imageio
+from mpl_toolkits.mplot3d import Axes3D
 
 def quaternion_slerp(q1, q2, t):
     """
@@ -51,63 +55,6 @@ def add_boarder(img, mode='interp', boarder_size=8):
     color[:, boarder_size:boarder_size + H, boarder_size:boarder_size + W] = img
     return color
 
-
-def render_set(model_path, load2gpu_on_the_fly, is_6dof, name, iteration, views, gaussians, pipeline, background, deform, static_threshold=0.01, fps=60):
-    render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
-    gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
-    depth_path = os.path.join(model_path, name, "ours_{}".format(iteration), "depth")
-
-    makedirs(render_path, exist_ok=True)
-    makedirs(gts_path, exist_ok=True)
-    makedirs(depth_path, exist_ok=True)
-
-    with torch.no_grad():
-        xyz = gaussians.get_xyz
-        # deform_code = gaussians.get_deform_code
-        deform_code = deform.code_field(xyz)
-        # gate = deform.deform.get_gate(deform_code)
-
-        dxyz, _, _ = deform.step(xyz, torch.zeros((len(deform_code), 1), device='cuda'), deform_code)
-        sampled_time = torch.arange(0, 75, 1, device='cuda') / 100
-        sampled_time = einops.repeat(sampled_time, 't -> n_points t', n_points=xyz.shape[0])
-        static_mask = torch.ones_like(sampled_time[:, 0], dtype=torch.bool)
-        for i in range(75):
-            dxyz_t, _, _ = deform.step(xyz, sampled_time[:, i:i + 1], deform_code, 1 / fps)
-            static_mask &= ((dxyz_t - dxyz).norm(dim=1) < static_threshold)
-        motion_mask = ~static_mask
-
-    xyz = gaussians.get_xyz
-    # deform_code = gaussians.get_deform_code
-    deform_code = deform.code_field(xyz)
-
-    # d_xyz, d_rotation, d_scaling = deform.step(xyz.detach(), time_input, deform_code)
-    d_xyz = torch.zeros_like(gaussians.get_xyz)
-    d_rotation = torch.zeros_like(gaussians.get_rotation)
-    d_scaling = torch.zeros_like(gaussians.get_scaling)
-    t0 = torch.zeros_like(xyz[..., :1])
-
-    d_xyz[static_mask], d_rotation[static_mask], d_scaling[static_mask] = deform.step(
-        xyz[static_mask], t0[static_mask], deform_code[static_mask]
-    )
-
-    for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
-        if load2gpu_on_the_fly:
-            view.load2device()
-        fid = view.fid
-        time_input = fid.unsqueeze(0).expand(xyz.shape[0], -1)
-        d_xyz[motion_mask], d_rotation[motion_mask], d_scaling[motion_mask] = deform.step(
-            xyz[motion_mask], time_input[motion_mask], deform_code[motion_mask], 1 / fps
-        )
-
-        results = render(view, gaussians, pipeline, background, d_xyz, d_rotation, d_scaling, is_6dof)
-        rendering = results["render"]
-        depth = results["depth"]
-        depth = depth / (depth.max() + 1e-5)
-
-        gt = view.original_image[0:3, :, :]
-        torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
-        torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
-        torchvision.utils.save_image(depth, os.path.join(depth_path, '{0:05d}'.format(idx) + ".png"))
 
 
 def interpolate_time(model_path, load2gpu_on_the_fly, is_6dof, name, iteration, views, gaussians, pipeline, background, deform, static_threshold=0.01, fps=60):
@@ -568,6 +515,216 @@ def interpolate_view_original(model_path, load2gpu_on_the_fly, is_6dof, name, it
     imageio.mimwrite(os.path.join(render_path, 'video.mp4'), renderings, fps=30, quality=8)
 
 
+def render_set(model_path, load2gpu_on_the_fly, is_6dof, name, iteration, views, gaussians, pipeline, background, deform, static_threshold=0.01, fps=60):
+    render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
+    gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
+    depth_path = os.path.join(model_path, name, "ours_{}".format(iteration), "depth")
+
+    makedirs(render_path, exist_ok=True)
+    makedirs(gts_path, exist_ok=True)
+    makedirs(depth_path, exist_ok=True)
+
+    with torch.no_grad():
+        xyz = gaussians.get_xyz
+        # deform_code = gaussians.get_deform_code
+        deform_code = deform.code_field(xyz)
+        # gate = deform.deform.get_gate(deform_code)
+
+        dxyz, _, _ = deform.step(xyz, torch.zeros((len(deform_code), 1), device='cuda'), deform_code)
+        sampled_time = torch.arange(0, 75, 1, device='cuda') / 100
+        sampled_time = einops.repeat(sampled_time, 't -> n_points t', n_points=xyz.shape[0])
+        static_mask = torch.ones_like(sampled_time[:, 0], dtype=torch.bool)
+        for i in range(75):
+            dxyz_t, _, _ = deform.step(xyz, sampled_time[:, i:i + 1], deform_code, 1 / fps)
+            static_mask &= ((dxyz_t - dxyz).norm(dim=1) < static_threshold)
+        motion_mask = ~static_mask
+
+    xyz = gaussians.get_xyz
+    # deform_code = gaussians.get_deform_code
+    deform_code = deform.code_field(xyz)
+
+    # d_xyz, d_rotation, d_scaling = deform.step(xyz.detach(), time_input, deform_code)
+    d_xyz = torch.zeros_like(gaussians.get_xyz)
+    d_rotation = torch.zeros_like(gaussians.get_rotation)
+    d_scaling = torch.zeros_like(gaussians.get_scaling)
+    t0 = torch.zeros_like(xyz[..., :1])
+
+    d_xyz[static_mask], d_rotation[static_mask], d_scaling[static_mask] = deform.step(
+        xyz[static_mask], t0[static_mask], deform_code[static_mask]
+    )
+    #Sorting views
+    vels = []
+    position = []
+    views.sort(key = lambda v:v.fid.item())
+    for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
+        if load2gpu_on_the_fly:
+            view.load2device()
+        '''
+        print(idx)
+        free, total = torch.cuda.mem_get_info()
+        print(f"当前可用显存: {free / 1024**2:.2f} MB")
+        print(f"显卡总显存: {total / 1024**2:.2f} MB")
+        '''
+        fid = view.fid
+
+        time_input = fid.unsqueeze(0).expand(xyz.shape[0], -1)
+        d_xyz[motion_mask], d_rotation[motion_mask], d_scaling[motion_mask] = deform.step(
+            xyz[motion_mask], time_input[motion_mask], deform_code[motion_mask], 1 / fps
+        )
+        
+        '''
+        def get_vel_field(self, xyz, time_emb, deform_code, dt = 1/60, max_time=0.75):
+        '''
+  
+        vel = deform.get_vel_field( xyz[motion_mask], d_xyz[motion_mask], time_input[motion_mask], deform_code[motion_mask], 1 / 60)
+
+        position.append(xyz[motion_mask] + d_xyz[motion_mask])
+
+        vels.append(vel)
+        results = render(view, gaussians, pipeline, background, d_xyz, d_rotation, d_scaling, is_6dof)
+        rendering = results["render"]
+        depth = results["depth"]
+        depth = depth / (depth.max() + 1e-5)
+
+        gt = view.original_image[0:3, :, :]
+        torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
+        torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
+        torchvision.utils.save_image(depth, os.path.join(depth_path, '{0:05d}'.format(idx) + ".png"))
+    vels = torch.stack(vels, dim = 0).cpu().numpy() # 14, n, 3
+    
+    position = torch.stack(position, dim = 0).cpu().numpy()
+    # track_points_with_velocity(position)
+    track_points_with_given_velocity(position, vels)
+def track_points_with_velocity(
+    positions, 
+    num_samples=20, 
+    delta_t=1/30. , 
+    save_dir="analysis/velocity", 
+    gif_name="trajectory_with_velocity.gif"
+):
+    """
+    可视化采样点在点云中的运动轨迹，并在每一帧显示速度向量
+
+    参数:
+    - positions: numpy array, shape (n, m, 3)
+    - num_samples: 要追踪的点数量
+    - delta_t: 时间间隔
+    - save_dir: 图片保存目录
+    - gif_name: 保存的 GIF 名称
+    """
+
+    n, m, _ = positions.shape
+    os.makedirs(save_dir, exist_ok=True)
+
+    sampled_indices = np.random.choice(m, size=num_samples, replace=False)
+    cmap = cm.get_cmap("tab20", num_samples)
+    colors = [cmap(i) for i in range(num_samples)]
+    image_paths = []
+
+    for t in range(n - 1):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_title(f"Time Step {t} with Velocity (Y-Z Swapped)")
+
+        for i, idx in enumerate(sampled_indices):
+            pos_t = positions[t, idx]
+            pos_t1 = positions[t + 1, idx]
+            velocity = (pos_t1 - pos_t) / delta_t
+            print(t, i,  velocity)
+            # 调换 Y 和 Z 的顺序（也就是 pos[0], pos[2], pos[1]）
+            ax.scatter(pos_t[0], pos_t[2], pos_t[1], color=colors[i], s=30)
+            ax.quiver(
+                pos_t[0], pos_t[2], pos_t[1],
+                velocity[0], velocity[2], velocity[1],
+                color=colors[i], length=np.linalg.norm(velocity), normalize=True
+            )
+
+        # 设置坐标轴范围（也要调换）
+        ax.set_xlim(np.min(positions[:,:,0]), np.max(positions[:,:,0]))
+        ax.set_ylim(np.min(positions[:,:,2]), np.max(positions[:,:,2]))  # Z -> Y
+        ax.set_zlim(np.min(positions[:,:,1]), np.max(positions[:,:,1]))  # Y -> Z
+
+        # 标签也交换
+        ax.set_xlabel('X')
+        ax.set_ylabel('Z (original Y)')
+        ax.set_zlabel('Y (original Z)')
+
+        frame_path = f"{save_dir}/frame_{t:03d}.png"
+        plt.tight_layout()
+        plt.savefig(frame_path)
+        plt.close()
+        image_paths.append(frame_path)
+
+    # 生成 GIF
+    gif_path = os.path.join(save_dir, gif_name)
+    with imageio.get_writer(gif_path, mode='I', duration=0.5) as writer:
+        for path in image_paths:
+            image = imageio.imread(path)
+            writer.append_data(image)
+def track_points_with_given_velocity(
+    positions, vels, 
+    num_samples=20,  
+    save_dir="analysis/velocity", 
+    gif_name="trajectory_with_velocity.gif", indx = 0
+):
+    """
+    可视化采样点在点云中的运动轨迹，并在每一帧显示速度向量
+
+    参数:
+    - positions: numpy array, shape (n, m, 3)
+    - num_samples: 要追踪的点数量
+    - delta_t: 时间间隔
+    - save_dir: 图片保存目录
+    - gif_name: 保存的 GIF 名称
+    """
+
+    n, m, _ = positions.shape
+    os.makedirs(save_dir, exist_ok=True)
+
+    sampled_indices = np.random.choice(m, size=num_samples, replace=False)
+    cmap = cm.get_cmap("tab20", num_samples)
+    colors = [cmap(i) for i in range(num_samples)]
+    image_paths = []
+
+    for t in range(n):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_title(f"Time Step {t} with Velocity (Y-Z Swapped)")
+
+        for i, idx in enumerate(sampled_indices):
+
+            velocity = vels[t, idx]
+            pos_t = positions[t, idx]
+            # 调换 Y 和 Z 的顺序（也就是 pos[0], pos[2], pos[1]）
+            ax.scatter(pos_t[0], pos_t[2], pos_t[1], color=colors[i], s=30)
+            ax.quiver(
+                pos_t[0], pos_t[2], pos_t[1],
+                velocity[0], velocity[2], velocity[1],
+                color=colors[i], length=np.linalg.norm(velocity), normalize=True
+            )
+        '''
+        # 设置坐标轴范围（也要调换）
+        ax.set_xlim(np.min(positions[:,:,0]), np.max(positions[:,:,0]))
+        ax.set_ylim(np.min(positions[:,:,2]), np.max(positions[:,:,2]))  # Z -> Y
+        ax.set_zlim(np.min(positions[:,:,1]), np.max(positions[:,:,1]))  # Y -> Z
+        '''
+        # 标签也交换
+        ax.set_xlabel('X')
+        ax.set_ylabel('Z (original Y)')
+        ax.set_zlabel('Y (original Z)')
+
+        frame_path = f"{save_dir}/ite_"+str(indx)+f"_frame_{t:03d}.png"
+        plt.tight_layout()
+        plt.savefig(frame_path)
+        plt.close()
+        image_paths.append(frame_path)
+
+    # 生成 GIF
+    gif_path = os.path.join(save_dir, gif_name)
+    with imageio.get_writer(gif_path, mode='I', duration=0.5) as writer:
+        for path in image_paths:
+            image = imageio.imread(path)
+            writer.append_data(image)
 def render_sets(dataset: ModelParams, iteration: int, pipeline: PipelineParams, skip_train: bool, skip_val: bool, skip_test: bool,
                 mode: str, static_threshold=0.01, fps=60):
     with torch.no_grad():
@@ -621,10 +778,11 @@ if __name__ == "__main__":
     parser.add_argument("--mode", default='render', choices=['render', 'time', 'view', 'all', 'pose', 'original'])
     parser.add_argument("--static_threshold", default=0.01, type=float)
     parser.add_argument('--fps', type=int, default=60)
-    args = get_combined_args(parser)
+    args, _ = get_combined_args(parser)
     print("Rendering " + args.model_path)
 
     # Initialize system state (RNG)
     safe_state(args.quiet)
 
     render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_val, args.skip_test, args.mode, args.static_threshold, args.fps)
+    

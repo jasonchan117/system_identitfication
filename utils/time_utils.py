@@ -58,7 +58,7 @@ class Embedder:
 
 
 class DeformNetwork(nn.Module):
-    def __init__(self, D=8, W=256, input_ch=3, hyper_ch=8, multires=10, is_blender=False, is_6dof=False, gated=True):
+    def __init__(self, D=8, W=256, input_ch=3, hyper_ch=8, multires=10, is_blender=True, is_6dof=False, gated=True):
         print(f"DeformNetwork is blender {is_blender}")
         super(DeformNetwork, self).__init__()
         self.D = D
@@ -73,6 +73,7 @@ class DeformNetwork(nn.Module):
         self.input_ch = xyz_input_ch + time_input_ch + hyper_ch
 
         # Better for D-NeRF Dataset
+        '''
         self.time_out = 30
 
         self.timenet = nn.Sequential(
@@ -84,6 +85,27 @@ class DeformNetwork(nn.Module):
                 nn.Linear(W, W) if i not in self.skips else nn.Linear(W + xyz_input_ch + self.time_out + hyper_ch, W)
                 for i in range(D - 1)]
         )
+        '''
+        if is_blender:
+            # Better for D-NeRF Dataset
+            self.time_out = 30
+
+            self.timenet = nn.Sequential(
+                nn.Linear(time_input_ch, W), nn.ReLU(inplace=True),
+                nn.Linear(W, self.time_out))
+
+            self.linear = nn.ModuleList(
+                [nn.Linear(xyz_input_ch + self.time_out + hyper_ch, W)] + [
+                    nn.Linear(W, W) if i not in self.skips else nn.Linear(W + xyz_input_ch + self.time_out + hyper_ch, W)
+                    for i in range(D - 1)]
+            )
+
+        else:
+            self.linear = nn.ModuleList(
+                [nn.Linear(self.input_ch+ hyper_ch, W)] + [
+                    nn.Linear(W, W) if i not in self.skips else nn.Linear(W + self.input_ch+ hyper_ch, W)
+                    for i in range(D - 1)]
+            )
 
         self.is_blender = is_blender
         self.is_6dof = is_6dof

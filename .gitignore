@@ -1,5 +1,8 @@
 # ignore output
 output/
+analysis/
+data/
+assets/
 
 # ignore pycache
 *__pycache__/

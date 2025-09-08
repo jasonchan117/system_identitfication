@@ -26,7 +26,7 @@ from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
 from utils.camera_utils import camera_nerfies_from_JSON
-
+from tqdm import tqdm
 
 class CameraInfo(NamedTuple):
     uid: int
@@ -647,7 +647,107 @@ def readPlenopticVideoDataset(path, eval, num_images, hold_id=[0]):
     return scene_info
 
 
+def readCamerasFromAllData(path, white_background):
+    cam_infos = []
+
+    with open(os.path.join(path, "all_data.json")) as json_file:
+        frames = json.load(json_file)
+
+        for idx, frame in enumerate(tqdm(frames)):
+            cam_id, frame_id = frame["file_path"].split("/")[-1].rstrip(".png").lstrip("r_").split("_")
+            if frame_id == '-1':
+                continue
+            file_path = frame["file_path"].replace('r_', 'm_')
+            image_path = os.path.join(path, file_path)
+            image_name = Path(image_path).stem
+            image = np.asarray(Image.open(image_path))
+            
+            bg = np.array(
+                [1, 1, 1]) if white_background else np.array([0, 0, 0])
+            norm_data = image / 255.0
+            mask = (image.astype(int).sum(-1, keepdims=True) != 255 * 3).astype(float)
+            arr = norm_data * mask + bg * (1 - mask)
+            image = Image.fromarray(
+                np.array(arr * 255.0, dtype=np.byte), "RGB")
+            
+            frame_time = frame['time']
+            
+            c2w = frame["c2w"]
+            c2w.append([0.0, 0.0, 0.0, 1.0])
+            matrix = np.linalg.inv(np.array(c2w))
+            R = -np.transpose(matrix[:3, :3])
+            R[:, 0] = -R[:, 0]
+            T = -matrix[:3, 3]
+
+            intrinsic = frame['intrinsic']
+            ori_h, ori_w = image.size[0], image.size[1]
+            fovy = focal2fov(intrinsic[1][1], ori_h)
+            fovx = focal2fov(intrinsic[0][0], ori_w)
+            FovY = fovx
+            FovX = fovy
+            if ori_w != 800:
+                image = image.resize((800, 800), Image.BILINEAR)
+                if white_background:
+                    mask = (np.asarray(image).astype(int).sum(-1, keepdims=True) != 255 * 3).astype(float)
+                else:
+                    mask = (np.asarray(image).astype(int).sum(-1, keepdims=True) != 0).astype(float)
+
+            cam_infos.append(CameraInfo(uid=int(cam_id), 
+                                        R=R, T=T, 
+                                        FovY=FovY, FovX=FovX, 
+                                        image=image,
+                                        image_path=image_path, image_name=image_name, 
+                                        width=image.size[0], height=image.size[1], 
+                                        fid=frame_time, alpha_mask=mask,
+                                        ))
+
+    return cam_infos
+
+def readPACNeRFInfo(path, config_path, white_background, eval_cam_id=0, load_fix_pcd=False, read_cam=True):
+    with open(os.path.join(config_path), 'r') as f:
+        cfg = json.load(f)
+    print("Reading data")
+    if read_cam:
+        cam_infos = readCamerasFromAllData(path, white_background)
+        eval_cam_infos = [cam_info for cam_info in cam_infos if  cam_info.uid == eval_cam_id]
+        nerf_normalization = getNerfppNorm(cam_infos)
+        init_cam_infos = [cam_info for cam_info in cam_infos if  cam_info.uid == 0.]
+    else:
+        eval_cam_infos = []
+        cam_infos = []
+        nerf_normalization = {}
+        init_cam_infos = []
+    ply_path = os.path.join(path, "points3d.ply")
+    # We create random points inside the bounds of the synthetic Blender scenes
+    if not load_fix_pcd:
+        xyz_min = np.asarray(cfg['data']['xyz_min']).reshape(1, 3)
+        xyz_max = np.asarray(cfg['data']['xyz_max']).reshape(1, 3)
+        bounds = xyz_max[0] - xyz_min[0]
+        num_pts = np.prod(bounds*50)
+        num_pts = int(min(max(num_pts, 1e4), 2e5))
+        # Since this data set has no colmap data, we start with random points
+        print(f"Generating random point cloud ({num_pts})...")
+        xyz = np.random.random((num_pts, 3)) * (xyz_max - xyz_min) + xyz_min
+        shs = np.random.random((num_pts, 3)) / 255.0
+        pcd = BasicPointCloud(points=xyz, colors=SH2RGB(
+            shs), normals=np.zeros((num_pts, 3)))
+
+        storePly(ply_path, xyz, SH2RGB(shs) * 255)
+    else:
+        pcd = None
+        print(f"Load fixed pcd.")
+    
+    scene_info = SceneInfo(point_cloud=pcd,
+                           train_cameras=cam_infos,
+                           init_cameras = init_cam_infos,
+                           test_cameras=eval_cam_infos,
+                           val_cameras = eval_cam_infos,
+                           nerf_normalization=nerf_normalization,
+                           ply_path=ply_path)
+    return scene_info
+
 sceneLoadTypeCallbacks = {
+    "PacNeRF" : readPACNeRFInfo,
     "Colmap": readColmapSceneInfo,  # colmap dataset reader from official 3D Gaussian [https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/]
     "Blender": readNerfSyntheticInfo,  # D-NeRF dataset [https://drive.google.com/file/d/1uHVyApwqugXTFuIRRlE4abTW8_rrVeIK/view?usp=sharing]
     "DTU": readNeuSDTUInfo,  # DTU dataset used in Tensor4D [https://github.com/DSaurus/Tensor4D]
