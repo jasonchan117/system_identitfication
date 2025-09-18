@@ -605,7 +605,7 @@ class ExpSimulator:
         # print('hello')
         self.C_computer_next.compute_velocity_gradient()
         self.copy_CF(local_index)
-        # self.check_field(s, self.C)
+        self.check_field(s, self.C)
         # self.check_field(s+1, self.C)
         # self.check_field(s, self.v)
         '''
