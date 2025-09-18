@@ -429,7 +429,7 @@ if __name__ == "__main__":
 
     
     torch.cuda.empty_cache()
-    ti.init(arch=ti.cuda, debug=True, fast_math=False, device_memory_fraction=0.5)
+    ti.init(arch=ti.cuda, debug=False, fast_math=False, device_memory_fraction=0.5)
     ti._logging.set_logging_level(ti._logging.ERROR)
     print('gt point count: {}'.format(gts[0].shape[0]))
 
