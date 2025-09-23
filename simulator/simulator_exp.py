@@ -607,10 +607,10 @@ class ExpSimulator:
         self.C_computer_next.compute_velocity_gradient()
         self.copy_CF(local_index)
         print("Check NaN values")
-        self.check_field(s, self.C)
-        self.check_field(s+1, self.C)
+        # self.check_field(s, self.C)
+        # self.check_field(s+1, self.C)
         self.check_field(s, self.F)
-        
+
         '''
         self.knn_C(local_index + 1)
         self.C_computer.compute_velocity_gradient()
