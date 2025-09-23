@@ -36,7 +36,7 @@ class VelocityGradientComputer:
         # K = ti.static(self.k)  
 
         for i in range(self.n[None]):
-            min_dists = ti.Vector([1e13 for _ in ti.static(range(self.k))], dt=ti.f32)
+            min_dists = ti.Vector([1e16 for _ in ti.static(range(self.k))], dt=ti.f32)
             min_ids = ti.Vector([-1 for _ in ti.static(range(self.k))], dt=ti.i32)
             # min_dists_next = ti.Vector([1e13 for _ in range(K)], dt=ti.f32)
             # min_ids_next = ti.Vector([-1 for _ in range(K)], dt=ti.i32)

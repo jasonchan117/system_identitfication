@@ -34,7 +34,7 @@ class ExpSimulator:
         self.particle = particle_layout
         self.n_particles = n_particles
 
-        self.C_computer = VelocityGradientComputer(num_particles=self.n_particles)
+        # self.C_computer = VelocityGradientComputer(num_particles=self.n_particles)
         self.C_computer_next = VelocityGradientComputer(num_particles=self.n_particles)
 
         self.dx = dx
