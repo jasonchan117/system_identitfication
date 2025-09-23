@@ -271,8 +271,10 @@ class Estimator_exp(torch.nn.Module):
                 params.append({'params':self.plastic_viscosity, 'lr':info.get('init_lr', 0.05), 'name': param_name})
             elif param_name == "friction angle":
                 params.append({'params':self.friction_alpha, 'lr':info.get('init_lr', 1.0), 'name': param_name})
-        params.append({'params':self.vels, 'lr': phys_args.vel_lr / 1000, 'name': 'velocity'})
-        params.append({'params':self.gts, 'lr': phys_args.vel_lr / 1000, 'name': 'position'})
+
+        # params.append({'params':self.vels, 'lr': phys_args.vel_lr / 1000, 'name': 'velocity'})
+        # params.append({'params':self.gts, 'lr': phys_args.vel_lr / 1000, 'name': 'position'})
+
         # params.append({'params':self.init_omega, 'lr':info.get('init_lr', 1.5), 'name': "omega"})
         self.optimizer = torch.optim.Adam([*params],amsgrad=True)
         self.vel_optimizer = torch.optim.Adam([{'params': self.init_vel, 'lr': phys_args.vel_lr, 'name': 'velocity'}])

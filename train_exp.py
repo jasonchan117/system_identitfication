@@ -259,8 +259,12 @@ def forward_n_backward(estimator, ite):
         # print(torch.isnan(estimator.init_mu).any(), torch.isnan(estimator.init_lam).any())
         # estimator.init_rhos.backward(retain_graph=True, gradient=rho_grad)
         estimator.init_mu.backward(retain_graph=True, gradient=mu_grad)
-        estimator.vels.backward(retain_graph = True, gradient = velocity_grad)
-        estimator.gts.backward(retain_graph = True, gradient = position_grad)
+
+
+        # estimator.vels.backward(retain_graph = True, gradient = velocity_grad)
+        # estimator.gts.backward(retain_graph = True, gradient = position_grad)
+
+
         estimator.init_lam.backward(retain_graph=True, gradient=lam_grad)
         
         estimator.yield_stress.backward(retain_graph=True, gradient=yield_stress_grad)

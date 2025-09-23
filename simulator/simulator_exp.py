@@ -601,6 +601,7 @@ class ExpSimulator:
         self.set_values(local_index)
         # self.C_computer.find_neighbors()
         self.C_computer_next.find_neighbors()
+        # print((self.C_computer_next.neighbors.to_numpy() == -1).nonzero())
         # self.C_computer.compute_velocity_gradient()
         # print('hello')
         self.C_computer_next.compute_velocity_gradient()
