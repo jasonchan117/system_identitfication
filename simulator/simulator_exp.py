@@ -604,6 +604,8 @@ class ExpSimulator:
         # print((self.C_computer_next.neighbors.to_numpy() == -1).nonzero())
         # self.C_computer.compute_velocity_gradient()
         # print('hello')
+
+        print("Forward frame:", s)
         self.C_computer_next.compute_velocity_gradient()
         self.copy_CF(local_index)
         print("Check C NaN values")

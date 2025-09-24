@@ -524,7 +524,7 @@ class Estimator_exp(torch.nn.Module):
 
 
 
-            for s in range(self.m_f[None]):
+            for s in range(self.m_f[None] + 1):
                 for d in ti.static(range(3)):
                     self.simulator.x[p, s][d] = particles[s, p, d]
                     self.simulator.v[p, s][d] = velocities[s, p, d]
