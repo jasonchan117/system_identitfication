@@ -124,6 +124,7 @@ class Estimator_exp(torch.nn.Module):
         # self.rel_vel = []
         self.max_f = len(gts) - 1
 
+        print("processing frame:", self.max_f)
 
         self.dg = []
         self.vg = []
