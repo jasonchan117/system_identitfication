@@ -634,7 +634,7 @@ class ExpSimulator:
         '''
         self.grid_mom_diff(local_index)
         print("Check grid momentum")
-        self.check_grid(self.grid_in)
+        self.check_grid(self.grid_v_in)
         print("Check grid momentum next")
         self.check_grid(self.grid_v_next)
         print("Check grid stress")
