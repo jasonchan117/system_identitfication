@@ -388,11 +388,12 @@ class ExpSimulator:
 
                         
                         if ti.math.isnan(weight_next):
-                            ti.lang.exception.RuntimeError("weight_next NaN detected")
+                            ti.assert(False, "weight_next NaN detected")
+                            
                         if any(ti.math.isnan(stress_next[i, j]) for i in ti.static(range(3)) for j in ti.static(range(3))):
-                            ti.lang.exception.RuntimeError("stress_next NaN detected")
+                            ti.assert(False, "stress_next NaN detected")
                         if any(ti.math.isnan(dpos_next[i]) for i in ti.static(range(3))):
-                            ti.lang.exception.RuntimeError("dpos_next NaN detected")
+                            ti.assert(False, "dpos_next NaN detected")
 
     '''
     @ti.kernel
