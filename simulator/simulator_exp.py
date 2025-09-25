@@ -588,6 +588,10 @@ class ExpSimulator:
         for i in range(self.n_particles[None]):
             assert not ti.math.isnan(f[i, s]).any(), "NaN detected"
 
+    @ti.kernel
+    def check_grid(self, f: ti.template()):
+        for i in ti.grouped(f):
+            assert not ti.math.isnan(f[i]).any(), "NaN detected"
 
     def substep(self, s, cache=True):
         local_index = s % self.cuda_chunk_size
@@ -608,6 +612,10 @@ class ExpSimulator:
         print("Forward frame:", s)
         self.C_computer_next.compute_velocity_gradient()
         self.copy_CF(local_index)
+
+
+
+        '''
         print("Check C NaN values")
         self.check_field(s, self.C)
         print("check v + 1 NaN values")
@@ -618,13 +626,21 @@ class ExpSimulator:
         self.check_field(s+1, self.C)
         print("Check F NaN values")
         self.check_field(s, self.F)
-
+        '''
         '''
         self.knn_C(local_index + 1)
         self.C_computer.compute_velocity_gradient()
         self.copy_CF(local_index + 1)
         '''
         self.grid_mom_diff(local_index)
+        print("Check grid momentum")
+        check_grid(self.grid_in)
+        print("Check grid momentum next")
+        check_grid(self.grid_v_next)
+        print("Check grid stress")
+        check_grid(self.grid_f)
+        print("check grid stress next")
+        check_grid(self.grid_f_next)
         self.cal_loss()
         # self.test_grad()
         
