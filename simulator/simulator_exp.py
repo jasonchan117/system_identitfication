@@ -384,11 +384,11 @@ class ExpSimulator:
 
                         self.grid_f[base + offset] += weight * stress @ dpos
                         self.grid_f_next[base_next + offset] += weight_next * stress_next @ dpos_next
-                        if bool(ti.math.isnan(weight_next).any()):
+                        if ti.math.isnan(weight_next).any():
                             ti.lang.exception.RuntimeError("weight_next NaN detected")
-                        if bool(ti.math.isnan(stress_next).any()):
+                        if ti.math.isnan(stress_next).any():
                             ti.lang.exception.RuntimeError("stress_next NaN detected")
-                        if bool(ti.math.isnan(dpos_next).any()):
+                        if ti.math.isnan(dpos_next).any():
                             ti.lang.exception.RuntimeError("dpos_next NaN detected")
 
     '''
