@@ -322,7 +322,7 @@ class ExpSimulator:
 
  
     @ti.kernel
-    def grid_mom_diff(self, s:ti.i32):
+    def grid_mom_diff(self, s:ti.i32)-> ti.f32:
         # ti.block_local(self.grid_m)
         # ti.block_local(self.grid_m_next)
         ti.block_local(self.grid_v_in)
@@ -651,7 +651,7 @@ class ExpSimulator:
         self.copy_CF(local_index + 1)
         '''
         has_nan = self.grid_mom_diff(local_index)
-        assert not has_nan
+        assert not has_nan, "NaN detected at kernel"
         print("Check grid momentum")
         self.check_grid(self.grid_v_in)
         print("Check grid momentum next")
