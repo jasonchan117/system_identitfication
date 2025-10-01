@@ -38,7 +38,7 @@ class ExpSimulator:
 
         # self.C_computer = VelocityGradientComputer(num_particles=self.n_particles)
         self.C_computer_next = VelocityGradientComputer(num_particles=self.n_particles)
-        self.nan_flag = ti.field(dtype=ti.32, shape=())
+        self.nan_flag = ti.field(dtype=ti.i32, shape=())
         self.dx = dx
         self.inv_dx = inv_dx
         self.frame_dt = frame_dt
