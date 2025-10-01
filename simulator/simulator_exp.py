@@ -389,7 +389,7 @@ class ExpSimulator:
                         self.grid_f[base + offset] += weight * stress @ dpos
                         self.grid_f_next[base_next + offset] += weight_next * stress_next @ dpos_next
 
-                        with ti.ad.no_grad():
+                        if not ti.static(ti.ad.is_active()):
                             # --- Runtime assertions ---
                             assert not ti.math.isnan(weight_next), f"NaN in weight_next at particle {p}"
                             for ii in ti.static(range(3)):
