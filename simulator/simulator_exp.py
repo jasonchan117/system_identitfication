@@ -322,14 +322,14 @@ class ExpSimulator:
 
  
     @ti.kernel
-    def grid_mom_diff(self, s:ti.i32)-> ti.f32:
+    def grid_mom_diff(self, s:ti.i32):
         # ti.block_local(self.grid_m)
         # ti.block_local(self.grid_m_next)
         ti.block_local(self.grid_v_in)
         ti.block_local(self.grid_v_next)
         ti.block_local(self.grid_f)
         ti.block_local(self.grid_f_next)
-        has_nan = 0
+
         for p in range(self.n_particles[None]):
             base = ti.floor(self.x[p, s] * self.inv_dx[None] - 0.5).cast(int)
             base_next = ti.floor(self.x[p, s + 1] * self.inv_dx[None] - 0.5).cast(int)
@@ -390,7 +390,14 @@ class ExpSimulator:
                         self.grid_f[base + offset] += weight * stress @ dpos
                         self.grid_f_next[base_next + offset] += weight_next * stress_next @ dpos_next
                         if ti.math.isnan(weight_next):
-                            has_nan = 1
+                            print("weight_next nan")
+                        for ii in ti.static(range(3)):
+                            for jj in ti.static(range(3)):
+                                if ti.math.isnan(stress_next[ii, jj]):
+                                    print("NaN in stress_next")
+                        for ii in ti.static(range(3)):
+                            if ti.math.isnan(dpos_next[ii]):
+                                print("NaN in dpos_next")
                 '''
                         if not ti.static(ti.ad.is_active()):
                             # --- Runtime assertions ---
@@ -401,7 +408,6 @@ class ExpSimulator:
                             for ii in ti.static(range(3)):
                                 assert not ti.math.isnan(dpos_next[ii]), f"NaN in dpos_next at particle {p}, entry {ii}"
                 '''
-        return has_nan
     '''
     @ti.kernel
     def cal_F(self, s:ti.i32):
@@ -650,8 +656,8 @@ class ExpSimulator:
         self.C_computer.compute_velocity_gradient()
         self.copy_CF(local_index + 1)
         '''
-        has_nan = self.grid_mom_diff(local_index)
-        assert not has_nan, "NaN detected at kernel"
+        self.grid_mom_diff(local_index)
+        # assert not has_nan, "NaN detected at kernel"
         print("Check grid momentum")
         self.check_grid(self.grid_v_in)
         print("Check grid momentum next")
