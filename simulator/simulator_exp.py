@@ -127,6 +127,8 @@ class ExpSimulator:
         self.grid_f_next = ti.Vector.field(dim, dtype=self.dtype, needs_grad=True)
         self.loss = ti.field(self.dtype, shape=(), needs_grad=True)
 
+
+
         def block_component(c):
             block.dense(ti.ijk, leaf_block_size).place(c, c.grad, offset=offset)
 
@@ -387,17 +389,14 @@ class ExpSimulator:
                         self.grid_f[base + offset] += weight * stress @ dpos
                         self.grid_f_next[base_next + offset] += weight_next * stress_next @ dpos_next
 
-                        if ti.math.isnan(weight_next):
-                            raise TaichiRuntimeError("weight_next NaN detected")
 
+                        # --- Runtime assertions ---
+                        assert not ti.math.isnan(weight_next), f"NaN in weight_next at particle {p}"
                         for ii in ti.static(range(3)):
                             for jj in ti.static(range(3)):
-                                if ti.math.isnan(stress_next[ii, jj]):
-                                    raise TaichiRuntimeError("stress_next NaN detected")
-
+                                assert not ti.math.isnan(stress_next[ii, jj]), f"NaN in stress_next at particle {p}, entry ({ii},{jj})"
                         for ii in ti.static(range(3)):
-                            if ti.math.isnan(dpos_next[ii]):
-                                raise TaichiRuntimeError("dpos_next NaN detected")
+                            assert not ti.math.isnan(dpos_next[ii]), f"NaN in dpos_next at particle {p}, entry {ii}"
                         
     '''
     @ti.kernel
