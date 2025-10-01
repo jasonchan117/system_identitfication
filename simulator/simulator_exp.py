@@ -38,7 +38,7 @@ class ExpSimulator:
 
         # self.C_computer = VelocityGradientComputer(num_particles=self.n_particles)
         self.C_computer_next = VelocityGradientComputer(num_particles=self.n_particles)
-
+        self.nan_flag = ti.field(dtype=ti.32, shape=())
         self.dx = dx
         self.inv_dx = inv_dx
         self.frame_dt = frame_dt
@@ -325,6 +325,7 @@ class ExpSimulator:
     def grid_mom_diff(self, s:ti.i32):
         # ti.block_local(self.grid_m)
         # ti.block_local(self.grid_m_next)
+        self.nan_flag = 0
         ti.block_local(self.grid_v_in)
         ti.block_local(self.grid_v_next)
         ti.block_local(self.grid_f)
@@ -389,8 +390,9 @@ class ExpSimulator:
 
                         self.grid_f[base + offset] += weight * stress @ dpos
                         self.grid_f_next[base_next + offset] += weight_next * stress_next @ dpos_next
-                        if ti.math.isnan(weight_next):
-                            print("weight_next nan")
+                        if weight_next != weight_next:
+                            self.nan_flag[None] = 1
+                        '''
                         for ii in ti.static(range(3)):
                             for jj in ti.static(range(3)):
                                 if ti.math.isnan(stress_next[ii, jj]):
@@ -398,6 +400,7 @@ class ExpSimulator:
                         for ii in ti.static(range(3)):
                             if ti.math.isnan(dpos_next[ii]):
                                 print("NaN in dpos_next")
+                        '''
                 '''
                         if not ti.static(ti.ad.is_active()):
                             # --- Runtime assertions ---
@@ -657,7 +660,7 @@ class ExpSimulator:
         self.copy_CF(local_index + 1)
         '''
         self.grid_mom_diff(local_index)
-        # assert not has_nan, "NaN detected at kernel"
+        assert not self.nan_flag, "NaN detected at kernel"
         print("Check grid momentum")
         self.check_grid(self.grid_v_in)
         print("Check grid momentum next")
