@@ -2,6 +2,8 @@ import taichi as ti
 import math
 import torch
 from simulator import VelocityGradientComputer
+from taichi.lang.exception import TaichiRuntimeError
+
 import sys
 @ti.data_oriented
 class ExpSimulator:
@@ -385,16 +387,18 @@ class ExpSimulator:
                         self.grid_f[base + offset] += weight * stress @ dpos
                         self.grid_f_next[base_next + offset] += weight_next * stress_next @ dpos_next
 
-
-                        
                         if ti.math.isnan(weight_next):
-                            ti.assert(False, "weight_next NaN detected")
-                            
-                        if any(ti.math.isnan(stress_next[i, j]) for i in ti.static(range(3)) for j in ti.static(range(3))):
-                            ti.assert(False, "stress_next NaN detected")
-                        if any(ti.math.isnan(dpos_next[i]) for i in ti.static(range(3))):
-                            ti.assert(False, "dpos_next NaN detected")
+                            raise TaichiRuntimeError("weight_next NaN detected")
 
+                        for ii in ti.static(range(3)):
+                            for jj in ti.static(range(3)):
+                                if ti.math.isnan(stress_next[ii, jj]):
+                                    raise TaichiRuntimeError("stress_next NaN detected")
+
+                        for ii in ti.static(range(3)):
+                            if ti.math.isnan(dpos_next[ii]):
+                                raise TaichiRuntimeError("dpos_next NaN detected")
+                        
     '''
     @ti.kernel
     def cal_F(self, s:ti.i32):
