@@ -322,7 +322,7 @@ class ExpSimulator:
 
  
     @ti.kernel
-    def grid_mom_diff(self, s:ti.i32):
+    def grid_mom_diff(self, s:ti.i32, ad : ti.i32):
         # ti.block_local(self.grid_m)
         # ti.block_local(self.grid_m_next)
         ti.block_local(self.grid_v_in)
@@ -389,7 +389,7 @@ class ExpSimulator:
                         self.grid_f[base + offset] += weight * stress @ dpos
                         self.grid_f_next[base_next + offset] += weight_next * stress_next @ dpos_next
 
-                        if not ti.static(ti.ad.is_active()):
+                        if ad == 0:
                             # --- Runtime assertions ---
                             assert not ti.math.isnan(weight_next), f"NaN in weight_next at particle {p}"
                             for ii in ti.static(range(3)):
@@ -646,7 +646,7 @@ class ExpSimulator:
         self.C_computer.compute_velocity_gradient()
         self.copy_CF(local_index + 1)
         '''
-        self.grid_mom_diff(local_index)
+        self.grid_mom_diff(local_index, 0)
         print("Check grid momentum")
         self.check_grid(self.grid_v_in)
         print("Check grid momentum next")
@@ -674,7 +674,7 @@ class ExpSimulator:
         # self.grid.deactivate_all()
         
         self.cal_loss.grad()
-        self.grid_mom_diff.grad(local_index)
+        self.grid_mom_diff.grad(local_index, 1)
         '''
         self.knn_C.grad(local_index + 1)
         self.C_computer.compute_velocity_gradient.grad()
