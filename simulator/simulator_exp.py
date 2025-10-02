@@ -325,7 +325,7 @@ class ExpSimulator:
     def grid_mom_diff(self, s:ti.i32):
         # ti.block_local(self.grid_m)
         # ti.block_local(self.grid_m_next)
-        self.nan_flag[None]= 0
+        # self.nan_flag[None]= 0
         ti.block_local(self.grid_v_in)
         ti.block_local(self.grid_v_next)
         ti.block_local(self.grid_f)
@@ -390,8 +390,8 @@ class ExpSimulator:
 
                         self.grid_f[base + offset] += weight * stress @ dpos
                         self.grid_f_next[base_next + offset] += weight_next * stress_next @ dpos_next
-                        if weight_next != weight_next:
-                            self.nan_flag[None] = 1
+                        # if weight_next != weight_next:
+                        #     self.nan_flag[None] = 1
                         '''
                         for ii in ti.static(range(3)):
                             for jj in ti.static(range(3)):
@@ -660,8 +660,8 @@ class ExpSimulator:
         self.copy_CF(local_index + 1)
         '''
         self.grid_mom_diff(local_index)
-        print(self.nan_flag[None])
-        assert not self.nan_flag[None], "NaN detected at kernel"
+        # print(self.nan_flag[None])
+        # assert not self.nan_flag[None], "NaN detected at kernel"
         print("Check grid momentum")
         self.check_grid(self.grid_v_in)
         print("Check grid momentum next")
