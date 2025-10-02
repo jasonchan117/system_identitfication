@@ -390,6 +390,7 @@ class ExpSimulator:
 
                         self.grid_f[base + offset] += weight * stress @ dpos
                         self.grid_f_next[base_next + offset] += weight_next * stress_next @ dpos_next
+                        print(">>", weight_next, stress_next, dpos_next)
                         # if weight_next != weight_next:
                         #     self.nan_flag[None] = 1
                         '''
