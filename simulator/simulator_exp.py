@@ -402,7 +402,7 @@ class ExpSimulator:
                                 print("NaN in dpos_next")
                         '''
                 '''
-                        if not ti.static(ti.ad.is_active()):
+                        if not ti.static(ti.ad  .is_active()):
                             # --- Runtime assertions ---
                             assert not ti.math.isnan(weight_next), f"NaN in weight_next at particle {p}"
                             for ii in ti.static(range(3)):
@@ -660,7 +660,8 @@ class ExpSimulator:
         self.copy_CF(local_index + 1)
         '''
         self.grid_mom_diff(local_index)
-        assert not self.nan_flag, "NaN detected at kernel"
+        print(self.nan_flag[None])
+        assert not self.nan_flag[None], "NaN detected at kernel"
         print("Check grid momentum")
         self.check_grid(self.grid_v_in)
         print("Check grid momentum next")
