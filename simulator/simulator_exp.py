@@ -325,7 +325,7 @@ class ExpSimulator:
     def grid_mom_diff(self, s:ti.i32):
         # ti.block_local(self.grid_m)
         # ti.block_local(self.grid_m_next)
-        self.nan_flag = 0
+        self.nan_flag[None]= 0
         ti.block_local(self.grid_v_in)
         ti.block_local(self.grid_v_next)
         ti.block_local(self.grid_f)
