@@ -377,7 +377,7 @@ class ExpSimulator:
             # print("stress:", stress) 
             # print("stress_next:", stress_next)
             # print("C", self.C[p, s])
-            print("C_next", self.C[p, s + 1])
+            print(stress_next, J_next, scale_next, epsilon_next)
             for i in ti.static(range(3)):
                 for j in ti.static(range(3)):
                     for k in ti.static(range(3)):
