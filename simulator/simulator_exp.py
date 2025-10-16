@@ -374,8 +374,10 @@ class ExpSimulator:
             stress = (-self.dt[None] * self.p_vol[p] * 4 * self.inv_dx[None]**2) * stress
             # calculate the momentum of two consecutive frames at grid node
             stress_next = (-self.dt[None] * self.p_vol[p] * 4 * self.inv_dx[None]**2) * stress_next
-            print("stress:" stress) 
-            print("stress_next:" stress_next)
+            print("stress:", stress) 
+            print("stress_next:", stress_next)
+            print("C", self.C[p, s])
+            print("C_next", self.C[p, s + 1])
             for i in ti.static(range(3)):
                 for j in ti.static(range(3)):
                     for k in ti.static(range(3)):
