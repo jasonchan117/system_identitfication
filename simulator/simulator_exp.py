@@ -358,7 +358,7 @@ class ExpSimulator:
                 grad_v_next = self.C[p, s + 1]
                 epsilon_next = 0.5 * (grad_v_next + grad_v_next.transpose())
                 stress_next = self.damping_coeff * epsilon_next * J_next + self.mu[p] * (new_F_next @ new_F_next.transpose()) + scale_next * ti.Matrix.identity(self.dtype, self.dim)
-                
+                print( "grad_v_next", grad_v_next, "stress_next", stress_next)
             elif ti.static(self.material == self.viscous_fluid):
                 J = new_F[0,0]
                 kappa = .6666666666 * self.mu[p] + self.lam[p]
@@ -377,7 +377,7 @@ class ExpSimulator:
             # print("stress:", stress) 
             # print("stress_next:", stress_next)
             # print("C", self.C[p, s])
-            print( "J_next", J_next)
+            
             for i in ti.static(range(3)):
                 for j in ti.static(range(3)):
                     for k in ti.static(range(3)):
