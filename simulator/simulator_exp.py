@@ -376,7 +376,7 @@ class ExpSimulator:
             stress_next = (-self.dt[None] * self.p_vol[p] * 4 * self.inv_dx[None]**2) * stress_next
             # print("stress:", stress) 
             # print("stress_next:", stress_next)
-            print("F", self.F[p, s+1] @ self.F[p, s+1].transpose(), "determinant", self.F[p, s+1].determinant())
+            print("determinant", self.F[p, s].determinant(), "F", self.F[p, s], "determinant_next", self.F[p, s+1].determinant(), "F_next", self.F[p, s+1])
             
             for i in ti.static(range(3)):
                 for j in ti.static(range(3)):
