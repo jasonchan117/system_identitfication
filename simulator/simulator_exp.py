@@ -30,7 +30,7 @@ class ExpSimulator:
         self.rel_vel = rel_vel
 
 
-        self.sample_idx = []
+        
         self.dtype = dtype
         self.material = material
         self.particle = particle_layout
@@ -56,7 +56,7 @@ class ExpSimulator:
         self.cuda_chunk_size = cuda_chunk_size
         print("cuda_chunk_size: ", cuda_chunk_size)
         self.step_particle = self.particle.dense(ti.j, cuda_chunk_size+1) # the last one is the first one in the next chunk
-
+        # self.sample_idx = ti.field(dtype = ti.i32, shape = (self.n[None], 50, self.dim + 1))
 
 
         self.x = ti.Vector.field(dim, dtype=self.dtype, needs_grad=True)  # position
@@ -601,12 +601,14 @@ class ExpSimulator:
                 # self.C_computer.v[p][d] = self.v[p, s][d]
                 self.C_computer_next.x[p][d] = self.x[p, s + 1][d]
                 self.C_computer_next.v[p][d] = self.v[p, s + 1][d]
+    '''
     @ti.kernel
     def set_random(self):
         for p in range(self.n_particles[None]):
             for iter in ti.static(range(50)):
                 for d in ti.static(range(self.dim + 1)):
                     self.C_computer_next.sample_idx[p, iter ,d] = self.sample_idx[p, iter, d]
+    '''
     @ti.kernel
     def copy_CF(self,  s: ti.i32):
         for p in range(self.n_particles[None]):
@@ -635,8 +637,9 @@ class ExpSimulator:
         
         self.grid.deactivate_all()
 
-        self.sample_idx = np.random.randint(low = 0, high = 16, size = (self.n_particles[None], 50, self.dim + 1))
-        self.set_random()
+        s_idx = np.random.randint(low = 0, high = 16, size = (self.n_particles[None], 50, self.dim + 1))
+        self.C_computer_next.sample_idx.from_numpy(s_dix)
+        # self.set_random()
         # self.cal_grid_v(local_index)
         # self.cal_C(local_index)
         # self.cal_F(local_index)
@@ -719,7 +722,7 @@ class ExpSimulator:
         # self.C_computer.find_neighbors.grad()
         # self.C_computer_next.find_neighbors.grad()
         self.set_values.grad(local_index)
-        self.set_random.grad()
+        # self.set_random.grad()
         
         # self.cal_F.grad(local_index)
         # self.cal_C.grad(local_index)
