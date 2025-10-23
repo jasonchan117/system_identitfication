@@ -606,7 +606,7 @@ class ExpSimulator:
         for p in range(self.n_particles[None]):
             for iter in range(50):
                 for d in ti.static(range(self.dim + 1)):
-                    self.C_computer_next.sample_idx[p, iter, d] = self.sample_idx[p, iter, d]
+                    self.C_computer_next.sample_idx[p][iter][d] = self.sample_idx[p, iter, d]
     @ti.kernel
     def copy_CF(self,  s: ti.i32):
         for p in range(self.n_particles[None]):
