@@ -13,7 +13,7 @@ class VelocityGradientComputer:
         # self.dx = dx
         self.x = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.n[None], needs_grad=True)
         self.v = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.n[None], needs_grad = True)
-
+        self.sample_idx = ti.field(dtype = ti.i32, shape = (self.n[None], 50, self.dim + 1))
 
         self.C = ti.Matrix.field(self.dim, self.dim, dtype=ti.f32, shape=self.n[None], needs_grad = True)
 
@@ -311,16 +311,16 @@ class VelocityGradientComputer:
         C_best = ti.Matrix.zero(ti.f32, self.dim, self.dim)
 
         for iter in range(50):
-
+            '''
             sample_idx = ti.Vector.zero(ti.i32, self.dim + 1)
             for d in ti.static(range(self.dim + 1)):
                 sample_idx[d] = self.neighbors[ind, ti.cast(ti.random() * self.k, ti.i32)]
-
+            '''
 
             B = ti.Matrix.zero(ti.f32, self.dim, self.dim)
             D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
             for s in ti.static(range(self.dim + 1)):
-                j = sample_idx[s]
+                j = self.sample_idx[ind, iter, s]
                 dx = self.x[j] - xi
                 dv = self.v[j] - vi
                 B += dv.outer_product(dx)
