@@ -646,7 +646,7 @@ class ExpSimulator:
         self.copy_CF(local_index)
 
 
-
+        # Debug taichi field
         '''
         print("Check C NaN values")
         self.check_field(s, self.C)
@@ -665,8 +665,8 @@ class ExpSimulator:
         self.copy_CF(local_index + 1)
         '''
         self.grid_mom_diff(local_index)
-        # print(self.nan_flag[None])
-        # assert not self.nan_flag[None], "NaN detected at kernel"
+        # Debug grid
+        '''
         print("Check grid momentum")
         self.check_grid(self.grid_v_in)
         print("Check grid momentum next")
@@ -675,6 +675,7 @@ class ExpSimulator:
         self.check_grid(self.grid_f)
         print("check grid stress next")
         self.check_grid(self.grid_f_next)
+        '''
         self.cal_loss()
         # self.test_grad()
         

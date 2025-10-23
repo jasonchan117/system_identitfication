@@ -265,6 +265,7 @@ class VelocityGradientComputer:
     @ti.kernel
     def compute_velocity_gradient(self):
         for i in range(self.n[None]):
+            '''
             weight = self.compute_mls_weights(i)
             # weight_next = self.compute_mls_weights_next(i)
             xi = self.x[i]
@@ -274,18 +275,7 @@ class VelocityGradientComputer:
             D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
             vi = self.v[i]
             x_sum =  ti.Vector.zero(ti.f32, self.dim)
-            '''
-            dist_sum = 0.
-            for k in range(self.k):
-                j = self.neighbors[i, k]
-  
-                xj = self.x[j]
 
-                dx = xj - xi
-                dist = dx.norm()
-                dist_sum += dist
-            dist_sum /= self.k
-            '''
             for k in ti.static(range(self.k)):
                 j = self.neighbors[i, k]
   
@@ -301,11 +291,60 @@ class VelocityGradientComputer:
                 B += weight[k] * vj.outer_product(dx)
                 # B += (weight[k] * vj.outer_product(dx))
                 D += (weight[k] * dx.outer_product(dx))
-                
-            self.C[i] = B @ D.inverse() 
+            '''
+            # self.C[i] = B @ D.inverse() 
+            self.C[i] = self.ransac_velocity_gradient(i)
             # print(i, self.C[i])
 
     @ti.kernel
     def get_velocity_gradients(self):
         for i in ti.static(range(self.n[None])):
             print(f"Particle {i}, C = {self.C[i]}")
+
+    @ti.func
+    def ransac_velocity_gradient(self, ind):
+
+        xi = self.x[ind]
+        vi = self.v[ind]
+        
+        best_inlier_count = 0
+        C_best = ti.Matrix.zero(ti.f32, self.dim, self.dim)
+
+        for iter in ti.static(range(50)):
+
+            sample_idx = ti.Vector.zero(ti.i32, self.dim + 1)
+            for d in ti.static(range(self.dim + 1)):
+                sample_idx[d] = self.neighbors[ind, ti.cast(ti.random() * self.k, ti.i32)]
+
+
+            B = ti.Matrix.zero(ti.f32, self.dim, self.dim)
+            D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
+            for s in ti.static(range(self.dim + 1)):
+                j = sample_idx[s]
+                dx = self.x[j] - xi
+                dv = self.v[j] - vi
+                B += dv.outer_product(dx)
+                D += dx.outer_product(dx)
+
+
+            D += 1e-6 * ti.Matrix.identity(ti.f32, self.dim)
+            C_trial = B @ D.inverse()
+
+
+            inlier_count = 0
+            threshold = 0.02
+            for k in ti.static(range(self.k)):
+                j = self.neighbors[ind, k]
+                dx = self.x[j] - xi
+                dv = self.v[j] - vi
+                dv_pred = C_trial @ dx
+                err = (dv - dv_pred).norm()
+                if err < threshold:
+                    inlier_count += 1
+
+
+            if inlier_count > best_inlier_count:
+                best_inlier_count = inlier_count
+                C_best = C_trial
+
+        return C_best
