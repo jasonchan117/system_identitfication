@@ -310,7 +310,7 @@ class VelocityGradientComputer:
         best_inlier_count = 0
         C_best = ti.Matrix.zero(ti.f32, self.dim, self.dim)
 
-        for iter in ti.static(range(50)):
+        for iter in range(50):
 
             sample_idx = ti.Vector.zero(ti.i32, self.dim + 1)
             for d in ti.static(range(self.dim + 1)):
