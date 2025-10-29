@@ -3,7 +3,7 @@ import sys
 
 @ti.data_oriented
 class VelocityGradientComputer:
-    def __init__(self, num_particles, dim = 3, k = 16):
+    def __init__(self, num_particles, dim = 3, k = 8):
         
         self.n = num_particles
         # self.dim = ti.field(ti.i32, shape=())

@@ -724,7 +724,7 @@ class ExpSimulator:
         # self.C_computer_next.find_neighbors.grad()
         
         self.set_values.grad(local_index)
-        self.set_random.grad(self.s_idx)
+        # self.set_random.grad(self.s_idx)
         # self.set_random.grad()
         
         # self.cal_F.grad(local_index)
