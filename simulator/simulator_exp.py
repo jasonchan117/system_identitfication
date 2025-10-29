@@ -637,7 +637,7 @@ class ExpSimulator:
         
         self.grid.deactivate_all()
 
-        self.s_idx = np.random.randint(low = 0, high = 16, size = (self.n_particles[None], 50, self.dim ))
+        self.s_idx = np.random.randint(low = 0, high = 16, size = (int(self.n_particles[None]), 50, self.dim ))
         self.set_random(self.s_idx)
         # self.C_computer_next.sample_idx.from_numpy(s_idx)
         # self.set_random()

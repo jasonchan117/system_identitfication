@@ -13,7 +13,9 @@ class VelocityGradientComputer:
         # self.dx = dx
         self.x = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.n[None], needs_grad=True)
         self.v = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.n[None], needs_grad = True)
-        self.sample_idx = ti.field(dtype = ti.i32, shape = (self.n[None], 50, self.dim))
+
+        n_particles = int(self.n[None])
+        self.sample_idx = ti.field(dtype = ti.i32, shape = (n_particles, 50, self.dim), needs_grad = True)
 
         self.C = ti.Matrix.field(self.dim, self.dim, dtype=ti.f32, shape=self.n[None], needs_grad = True)
 
