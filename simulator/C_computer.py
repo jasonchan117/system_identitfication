@@ -14,8 +14,8 @@ class VelocityGradientComputer:
         self.x = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.n[None], needs_grad=True)
         self.v = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.n[None], needs_grad = True)
 
-        n_particles = int(self.n[None])
-        self.sample_idx = ti.field(dtype = ti.i32, shape = (n_particles, 50, self.dim), needs_grad = True)
+        # n_particles = int(self.n[None])
+        # self.sample_idx = ti.field(dtype = ti.i32, shape = (n_particles, 50, self.dim))
 
         self.C = ti.Matrix.field(self.dim, self.dim, dtype=ti.f32, shape=self.n[None], needs_grad = True)
 
@@ -312,41 +312,52 @@ class VelocityGradientComputer:
         best_inlier_count = 0
         C_best = ti.Matrix.zero(ti.f32, self.dim, self.dim)
 
-        for iter in range(50):
-            '''
-            sample_idx = ti.Vector.zero(ti.i32, self.dim + 1)
-            for d in ti.static(range(self.dim + 1)):
-                sample_idx[d] = self.neighbors[ind, ti.cast(ti.random() * self.k, ti.i32)]
-            '''
+        # for iter in range(50):
+        '''
+        sample_idx = ti.Vector.zero(ti.i32, self.dim + 1)
+        for d in ti.static(range(self.dim + 1)):
+            sample_idx[d] = self.neighbors[ind, ti.cast(ti.random() * self.k, ti.i32)]
+        '''
+        for ii in ti.static(range(self.k)):
+            for jj in ti.static(range(ii+1, self.k)):
+                for kk in ti.static(range(jj+1, self.k)):
+                    B = ti.Matrix.zero(ti.f32, self.dim, self.dim)
+                    D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
+                        
+                    dx_1 = self.x[self.neighbors[ind, ii]] - xi
+                    dv_1 = self.v[self.neighbors[ind, ii]] - vi
+                    B += dv_1.outer_product(dx_1)
+                    D += dx_1.outer_product(dx_1)
 
-            B = ti.Matrix.zero(ti.f32, self.dim, self.dim)
-            D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
-            for s in ti.static(range(self.dim)):
-                j = self.sample_idx[ind, iter, s]
-                dx = self.x[self.neighbors[ind, j]] - xi
-                dv = self.v[self.neighbors[ind, j]] - vi
-                B += dv.outer_product(dx)
-                D += dx.outer_product(dx)
+                    dx_2 = self.x[self.neighbors[ind, jj]] - xi
+                    dv_2 = self.v[self.neighbors[ind, jj]] - vi
+                    B += dv_2.outer_product(dx_2)
+                    D += dx_2.outer_product(dx_2)
 
-
-            D += 1e-6 * ti.Matrix.identity(ti.f32, self.dim)
-            C_trial = B @ D.inverse()
-
-
-            inlier_count = 0
-            threshold = 0.02
-            for k in ti.static(range(self.k)):
-                j = self.neighbors[ind, k]
-                dx = self.x[j] - xi
-                dv = self.v[j] - vi
-                dv_pred = C_trial @ dx
-                err = (dv - dv_pred).norm()
-                if err < threshold:
-                    inlier_count += 1
+                    dx_3 = self.x[self.neighbors[ind, kk]] - xi
+                    dv_3 = self.v[self.neighbors[ind, kk]] - vi
+                    B += dv_3.outer_product(dx_3)
+                    D += dx_3.outer_product(dx_3)
 
 
-            if inlier_count > best_inlier_count:
-                best_inlier_count = inlier_count
-                C_best = C_trial
+                    D += 1e-6 * ti.Matrix.identity(ti.f32, self.dim)
+                    C_trial = B @ D.inverse()
+
+
+                    inlier_count = 0
+                    threshold = 0.02
+                    for k in ti.static(range(self.k)):
+                        j = self.neighbors[ind, k]
+                        dx = self.x[j] - xi
+                        dv = self.v[j] - vi
+                        dv_pred = C_trial @ dx
+                        err = (dv - dv_pred).norm()
+                        if err < threshold:
+                            inlier_count += 1
+
+
+                    if inlier_count > best_inlier_count:
+                        best_inlier_count = inlier_count
+                        C_best = C_trial
 
         return C_best

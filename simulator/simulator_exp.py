@@ -601,14 +601,14 @@ class ExpSimulator:
                 # self.C_computer.v[p][d] = self.v[p, s][d]
                 self.C_computer_next.x[p][d] = self.x[p, s + 1][d]
                 self.C_computer_next.v[p][d] = self.v[p, s + 1][d]
-    
+    '''
     @ti.kernel
     def set_random(self, s_idx: ti.types.ndarray()):
         for p in range(self.n_particles[None]):
             for iter in ti.static(range(50)):
                 for d in ti.static(range(self.dim)):
                     self.C_computer_next.sample_idx[p, iter ,d] = s_idx[p, iter, d]
-    
+    '''
     @ti.kernel
     def copy_CF(self,  s: ti.i32):
         for p in range(self.n_particles[None]):
@@ -637,8 +637,8 @@ class ExpSimulator:
         
         self.grid.deactivate_all()
 
-        self.s_idx = np.random.randint(low = 0, high = 16, size = (int(self.n_particles[None]), 50, self.dim ))
-        self.set_random(self.s_idx)
+        # self.s_idx = np.random.randint(low = 0, high = 16, size = (int(self.n_particles[None]), 50, self.dim ))
+        # self.set_random(self.s_idx)
         # self.C_computer_next.sample_idx.from_numpy(s_idx)
         # self.set_random()
         # self.cal_grid_v(local_index)
