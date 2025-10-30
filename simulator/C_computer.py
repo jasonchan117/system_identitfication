@@ -366,25 +366,29 @@ class VelocityGradientComputer:
         C_best = ti.Matrix.zero(ti.f32, self.dim, self.dim)
 
         for ii in range(self.k):
-            for jj in range(ii+1, self.k):
-                for kk in range(jj+1, self.k):
+            for jj in range(ii + 1, self.k):
+                for kk in range(jj + 1, self.k):
                     B = ti.Matrix.zero(ti.f32, self.dim, self.dim)
                     D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
 
-                    # 替代 for idx in [ii, jj, kk]
-                    for l in range(3):
-                        if l == 0:
-                            idx = ii
-                        elif l == 1:
-                            idx = jj
-                        else:
-                            idx = kk
+                    # 依次处理 ii, jj, kk
+                    neighbor_id = self.neighbors[ind, ii]
+                    dx = ti.stop_grad(self.x[neighbor_id] - xi)
+                    dv = ti.stop_grad(self.v[neighbor_id] - vi)
+                    B += dv.outer_product(dx)
+                    D += dx.outer_product(dx)
 
-                        neighbor_id = self.neighbors[ind, idx]
-                        dx = ti.stop_grad(self.x[neighbor_id] - xi)
-                        dv = ti.stop_grad(self.v[neighbor_id] - vi)
-                        B += dv.outer_product(dx)
-                        D += dx.outer_product(dx)
+                    neighbor_id = self.neighbors[ind, jj]
+                    dx = ti.stop_grad(self.x[neighbor_id] - xi)
+                    dv = ti.stop_grad(self.v[neighbor_id] - vi)
+                    B += dv.outer_product(dx)
+                    D += dx.outer_product(dx)
+
+                    neighbor_id = self.neighbors[ind, kk]
+                    dx = ti.stop_grad(self.x[neighbor_id] - xi)
+                    dv = ti.stop_grad(self.v[neighbor_id] - vi)
+                    B += dv.outer_product(dx)
+                    D += dx.outer_product(dx)
 
                     D += 1e-6 * ti.Matrix.identity(ti.f32, self.dim)
                     C_trial = B @ D.inverse()
