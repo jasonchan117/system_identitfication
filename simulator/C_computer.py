@@ -302,7 +302,7 @@ class VelocityGradientComputer:
     def get_velocity_gradients(self):
         for i in ti.static(range(self.n[None])):
             print(f"Particle {i}, C = {self.C[i]}")
-
+    '''
     @ti.func
     def ransac_velocity_gradient(self, ind):
 
@@ -312,12 +312,7 @@ class VelocityGradientComputer:
         best_inlier_count = 0
         C_best = ti.Matrix.zero(ti.f32, self.dim, self.dim)
 
-        # for iter in range(50):
-        '''
-        sample_idx = ti.Vector.zero(ti.i32, self.dim + 1)
-        for d in ti.static(range(self.dim + 1)):
-            sample_idx[d] = self.neighbors[ind, ti.cast(ti.random() * self.k, ti.i32)]
-        '''
+
         for ii in range(self.k):
             for jj in range(ii+1, self.k):
                 for kk in range(jj+1, self.k):
@@ -359,5 +354,50 @@ class VelocityGradientComputer:
                     if inlier_count > best_inlier_count:
                         best_inlier_count = inlier_count
                         C_best = C_trial
+
+        return C_best
+    '''
+    @ti.func
+    def ransac_velocity_gradient(self, ind):
+        xi = self.x[ind]
+        vi = self.v[ind]
+
+        best_inlier_count = 0
+        C_best = ti.Matrix.zero(ti.f32, self.dim, self.dim)
+
+        # 三重组合循环，动态循环
+        for ii in range(self.k):
+            for jj in range(ii+1, self.k):
+                for kk in range(jj+1, self.k):
+                    # 内部计算不跟踪梯度
+                    B = ti.Matrix.zero(ti.f32, self.dim, self.dim)
+                    D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
+
+                    for idx in [ii, jj, kk]:
+                        neighbor_id = self.neighbors[ind, idx]
+                        dx = ti.stop_grad(self.x[neighbor_id] - xi)
+                        dv = ti.stop_grad(self.v[neighbor_id] - vi)
+                        B += dv.outer_product(dx)
+                        D += dx.outer_product(dx)
+
+                    D += 1e-6 * ti.Matrix.identity(ti.f32, self.dim)
+                    # C_trial 可以追踪梯度
+                    C_trial = B @ D.inverse()
+
+                    # inlier_count 内部不跟踪梯度
+                    inlier_count = 0
+                    threshold = 0.02
+                    for k_idx in range(self.k):
+                        j = self.neighbors[ind, k_idx]
+                        dx = ti.stop_grad(self.x[j] - xi)
+                        dv = ti.stop_grad(self.v[j] - vi)
+                        dv_pred = C_trial @ dx
+                        err = (dv - dv_pred).norm()
+                        if err < threshold:
+                            inlier_count += 1
+
+                    if inlier_count > best_inlier_count:
+                        best_inlier_count = inlier_count
+                        C_best = C_trial  # 这里 C_best 可参与梯度
 
         return C_best
