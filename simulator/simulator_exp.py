@@ -59,8 +59,8 @@ class ExpSimulator:
         # self.sample_idx = ti.field(dtype = ti.i32, shape = (self.n[None], 50, self.dim + 1))
 
 
-        self.x = ti.Vector.field(dim, dtype=self.dtype, needs_grad=True)  # position
-        self.v = ti.Vector.field(dim, dtype=self.dtype, needs_grad=True)  # velocity
+        self.x = ti.Vector.field(dim, dtype=self.dtype)  # position
+        self.v = ti.Vector.field(dim, dtype=self.dtype)  # velocity
         self.C = ti.Matrix.field(dim, dim, dtype=self.dtype, needs_grad=True)  # affine velocity field
         self.F = ti.Matrix.field(dim, dim, dtype=self.dtype, needs_grad=True)  # deformation gradient
         self.step_particle.place(self.x,
