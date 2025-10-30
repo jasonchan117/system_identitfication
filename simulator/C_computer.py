@@ -365,15 +365,21 @@ class VelocityGradientComputer:
         best_inlier_count = 0
         C_best = ti.Matrix.zero(ti.f32, self.dim, self.dim)
 
-        # 三重组合循环，动态循环
         for ii in range(self.k):
             for jj in range(ii+1, self.k):
                 for kk in range(jj+1, self.k):
-                    # 内部计算不跟踪梯度
                     B = ti.Matrix.zero(ti.f32, self.dim, self.dim)
                     D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
 
-                    for idx in [ii, jj, kk]:
+                    # 替代 for idx in [ii, jj, kk]
+                    for l in range(3):
+                        if l == 0:
+                            idx = ii
+                        elif l == 1:
+                            idx = jj
+                        else:
+                            idx = kk
+
                         neighbor_id = self.neighbors[ind, idx]
                         dx = ti.stop_grad(self.x[neighbor_id] - xi)
                         dv = ti.stop_grad(self.v[neighbor_id] - vi)
@@ -381,10 +387,9 @@ class VelocityGradientComputer:
                         D += dx.outer_product(dx)
 
                     D += 1e-6 * ti.Matrix.identity(ti.f32, self.dim)
-                    # C_trial 可以追踪梯度
                     C_trial = B @ D.inverse()
 
-                    # inlier_count 内部不跟踪梯度
+                    # inlier_count 内部不追踪梯度
                     inlier_count = 0
                     threshold = 0.02
                     for k_idx in range(self.k):
@@ -398,6 +403,6 @@ class VelocityGradientComputer:
 
                     if inlier_count > best_inlier_count:
                         best_inlier_count = inlier_count
-                        C_best = C_trial  # 这里 C_best 可参与梯度
+                        C_best = C_trial  # C_best 可参与梯度
 
         return C_best
