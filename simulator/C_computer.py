@@ -318,9 +318,9 @@ class VelocityGradientComputer:
         for d in ti.static(range(self.dim + 1)):
             sample_idx[d] = self.neighbors[ind, ti.cast(ti.random() * self.k, ti.i32)]
         '''
-        for ii in ti.static(range(self.k)):
-            for jj in ti.static(range(ii+1, self.k)):
-                for kk in ti.static(range(jj+1, self.k)):
+        for ii in range(self.k):
+            for jj in range(ii+1, self.k):
+                for kk in range(jj+1, self.k):
                     B = ti.Matrix.zero(ti.f32, self.dim, self.dim)
                     D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
                         
@@ -346,7 +346,7 @@ class VelocityGradientComputer:
 
                     inlier_count = 0
                     threshold = 0.02
-                    for k in ti.static(range(self.k)):
+                    for k in range(self.k):
                         j = self.neighbors[ind, k]
                         dx = self.x[j] - xi
                         dv = self.v[j] - vi
