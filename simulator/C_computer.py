@@ -3,7 +3,7 @@ import sys
 
 @ti.data_oriented
 class VelocityGradientComputer:
-    def __init__(self, num_particles, dim = 3, k = 8):
+    def __init__(self, num_particles, dim = 3, k = 6):
         
         self.n = num_particles
         # self.dim = ti.field(ti.i32, shape=())
@@ -302,7 +302,7 @@ class VelocityGradientComputer:
     def get_velocity_gradients(self):
         for i in ti.static(range(self.n[None])):
             print(f"Particle {i}, C = {self.C[i]}")
-    '''
+    
     @ti.func
     def ransac_velocity_gradient(self, ind):
 
@@ -313,9 +313,9 @@ class VelocityGradientComputer:
         C_best = ti.Matrix.zero(ti.f32, self.dim, self.dim)
 
 
-        for ii in range(self.k):
-            for jj in range(ii+1, self.k):
-                for kk in range(jj+1, self.k):
+        for ii in ti.static(range(self.k)):
+            for jj in ti.static(range(ii+1, self.k)):
+                for kk in ti.static(range(jj+1, self.k)):
                     B = ti.Matrix.zero(ti.f32, self.dim, self.dim)
                     D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
                         
@@ -341,7 +341,7 @@ class VelocityGradientComputer:
 
                     inlier_count = 0
                     threshold = 0.02
-                    for k in range(self.k):
+                    for k in ti.static(range(self.k)):
                         j = self.neighbors[ind, k]
                         dx = self.x[j] - xi
                         dv = self.v[j] - vi
@@ -356,57 +356,5 @@ class VelocityGradientComputer:
                         C_best = C_trial
 
         return C_best
-    '''
-    @ti.func
-    def ransac_velocity_gradient(self, ind):
-        xi = self.x[ind]
-        vi = self.v[ind]
+    
 
-        best_inlier_count = 0
-        C_best = ti.Matrix.zero(ti.f32, self.dim, self.dim)
-
-        for ii in range(self.k):
-            for jj in range(ii + 1, self.k):
-                for kk in range(jj + 1, self.k):
-                    B = ti.Matrix.zero(ti.f32, self.dim, self.dim)
-                    D = ti.Matrix.zero(ti.f32, self.dim, self.dim)
-
-                    # 依次处理 ii, jj, kk
-                    neighbor_id = self.neighbors[ind, ii]
-                    dx = ti.stop_grad(self.x[neighbor_id] - xi)
-                    dv = ti.stop_grad(self.v[neighbor_id] - vi)
-                    B += dv.outer_product(dx)
-                    D += dx.outer_product(dx)
-
-                    neighbor_id = self.neighbors[ind, jj]
-                    dx = ti.stop_grad(self.x[neighbor_id] - xi)
-                    dv = ti.stop_grad(self.v[neighbor_id] - vi)
-                    B += dv.outer_product(dx)
-                    D += dx.outer_product(dx)
-
-                    neighbor_id = self.neighbors[ind, kk]
-                    dx = ti.stop_grad(self.x[neighbor_id] - xi)
-                    dv = ti.stop_grad(self.v[neighbor_id] - vi)
-                    B += dv.outer_product(dx)
-                    D += dx.outer_product(dx)
-
-                    D += 1e-6 * ti.Matrix.identity(ti.f32, self.dim)
-                    C_trial = B @ D.inverse()
-
-                    # inlier_count 内部不追踪梯度
-                    inlier_count = 0
-                    threshold = 0.02
-                    for k_idx in range(self.k):
-                        j = self.neighbors[ind, k_idx]
-                        dx = ti.stop_grad(self.x[j] - xi)
-                        dv = ti.stop_grad(self.v[j] - vi)
-                        dv_pred = C_trial @ dx
-                        err = (dv - dv_pred).norm()
-                        if err < threshold:
-                            inlier_count += 1
-
-                    if inlier_count > best_inlier_count:
-                        best_inlier_count = inlier_count
-                        C_best = C_trial  # C_best 可参与梯度
-
-        return C_best

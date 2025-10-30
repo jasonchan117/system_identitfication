@@ -697,6 +697,7 @@ class ExpSimulator:
         for i in range(self.n_particles[None]):
             self.C_computer_next.compute_mls_weights(i)
     def substep_grad(self, s):
+        print("Backward frame:", s)
         local_index = s % self.cuda_chunk_size
         if local_index == self.cuda_chunk_size-1:
 
